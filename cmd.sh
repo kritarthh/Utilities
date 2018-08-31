@@ -27,6 +27,7 @@ function get_first_line {
 
 function get_user {
     remote C-c
+    remote C-c
     remote "clear && whoami"
     # wait for the tmux output to settle down
     sleep 0.5s
@@ -53,7 +54,8 @@ case "$1" in
 esac
 
 # install
-remote "sudo python setup.py install"
+remote "sudo rm -r $BUILD_DIR"
+remote "sudo python setup.py install -f"
 
 
 # restart
