@@ -55,6 +55,7 @@ esac
 
 # install
 remote "sudo rm -r $BUILD_DIR"
+remote "sudo pip uninstall --yes plivo_hangup_party"
 remote "sudo python setup.py install -f"
 
 
