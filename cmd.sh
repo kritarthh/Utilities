@@ -1,11 +1,12 @@
 #!/bin/bash
 my_dir="$(dirname "$0")"
+
 # make sure you have a variables.sh file in the cwd
-if [ ! -f $my_dir/variables.sh ]; then
-    echo "Variables not found, please place the variables.sh file in $my_dir"
+if [ ! -f $my_dir/variables_$CMD_SERVER_TYPE.sh ]; then
+    echo "Variables not found, please place the variables_$CMD_SERVER_TYPE.sh file in $my_dir"
     exit 1
 fi
-source "$my_dir/variables.sh"
+source "$my_dir/variables_$CMD_SERVER_TYPE.sh"
 
 
 function remote {
@@ -15,8 +16,6 @@ function remote {
 function init_ssh_cd_source {
     # remote "zsh"
     remote "ssh $USER@$MS_IP"
-    remote "cd $PC_DIR"
-    remote "source bin/activate"
 }
 
 function get_first_line {
@@ -42,23 +41,21 @@ function ensure_ssh {
     fi
 }
 
-# create tmux 
+# create tmux
 tmux new-session -d -s $session 2> /dev/null
 ensure_ssh
 
 case "$1" in
     ("tail") remote "tail -f $LOG_FILE" C-m && echo "tail success" ; exit 0 ;;
     ("cdr")  rsync -av --rsync-path="sudo rsync" -e ssh $USER@$MS_IP:$XML_DIR/$2.cdr.xml cdr.xml ; grep "plivo_hangup" cdr.xml |cut -d'>' -f2 |cut -d'<' -f1 |sed 's/%20/ /g' ; exit 0 ;;
-    ("copy") rsync -av --rsync-path="sudo rsync" -e ssh $MY_DIR/$2 $USER@$MS_IP:$SRC_DIR ; exit 0 ;;
-    ("deploy") echo "$1"ing "$2";;
+    ("put") rsync -av --exclude=".*" --rsync-path="sudo rsync" -e ssh $2 $USER@$MS_IP:$3 ; exit 0 ;;
+    ("fetch") rsync -av --exclude=".*" --rsync-path="sudo rsync" -e ssh $USER@$MS_IP:$2 `[ -z "$3" ] && echo ./ || echo $3`; exit 0 ;;
+    ("deploy") echo "$1"ing "$2"; remote "cd /opt/plivocom"; remote "source bin/activate"; remote "sudo python setup.py install -f"; remote "sudo plivocomm restart"; remote "sudo systemctl restart rsyslog" ;;
 esac
 
-# install
-remote "sudo rm -r $BUILD_DIR"
-remote "sudo pip uninstall --yes plivo_hangup_party"
-remote "sudo python setup.py install -f"
-
-
-# restart
-remote "sudo $service restart"
-remote "sudo $service status"
+#remote "cd /opt/plivocom"
+#remote "source bin/activate"
+#remote "sudo python setup.py install -f"
+#remote "sudo plivocomm restart"
+#remote "sudo systemctl restart rsyslog"
+#remote "sudo tail -F /mnt/data/log/plivo.log"
